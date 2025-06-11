@@ -1,766 +1,320 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Header from '@/components/Header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Users, Calendar, DollarSign, TrendingUp, UserCheck, AlertCircle, Star, Clock, Plus } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Trash2, Users, BookOpen, DollarSign, Star, Edit } from 'lucide-react';
+import { useAdminExperts, useCreateExpert, useUpdateExpert } from '@/hooks/useExperts';
+import { useBookings } from '@/hooks/useBookings';
+import { useCreateSessionType } from '@/hooks/useSessionTypes';
+import { toast } from 'sonner';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [isAddExpertOpen, setIsAddExpertOpen] = useState(false);
+  const { user, isLoading } = useAuth();
+  const { data: experts = [], isLoading: expertsLoading } = useAdminExperts();
+  const { data: bookings = [], isLoading: bookingsLoading } = useBookings();
+  const createExpertMutation = useCreateExpert();
+  const updateExpertMutation = useUpdateExpert();
+  const createSessionTypeMutation = useCreateSessionType();
 
-  const form = useForm({
-    defaultValues: {
-      name: '',
-      email: '',
-      title: '',
-      bio: '',
-      experience: '',
-      education: '',
-      languages: '',
-      timezone: '',
-      location: '',
-      skills: '',
-      hourlyRate: '',
-      sessions: [
-        {
-          title: '',
-          description: '',
-          duration: '',
-          price: ''
-        }
-      ]
-    }
+  const [isAddingExpert, setIsAddingExpert] = useState(false);
+  const [newExpert, setNewExpert] = useState({
+    title: '',
+    experience: '',
+    education: '',
+    languages: [''],
+    timezone: '',
+    location: '',
+    skills: [''],
+    hourly_rate: 0,
+    status: 'pending' as const,
   });
+  const [newSessionTypes, setNewSessionTypes] = useState([
+    { title: '', description: '', duration: 30, price: 0, type: 'video' as const }
+  ]);
 
-  // Mock data
-  const stats = {
-    totalExperts: 24,
-    totalUsers: 156,
-    totalSessions: 89,
-    monthlyRevenue: 15420,
-    pendingExperts: 3,
-    avgRating: 4.7
+  if (isLoading || expertsLoading || bookingsLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/login" replace />;
+  }
+
+  const addLanguage = () => {
+    setNewExpert(prev => ({
+      ...prev,
+      languages: [...prev.languages, '']
+    }));
   };
 
-  const recentSessions = [
-    {
-      id: '1',
-      expertName: 'Dr. Sarah Johnson',
-      userName: 'John Doe',
-      sessionTitle: '1:1 Product Strategy',
-      date: '2024-01-15',
-      time: '10:00 AM',
-      status: 'completed',
-      amount: 150,
-      rating: 5
-    },
-    {
-      id: '2',
-      expertName: 'Michael Chen',
-      userName: 'Jane Smith',
-      sessionTitle: 'Career Coaching',
-      date: '2024-01-15',
-      time: '02:00 PM',
-      status: 'upcoming',
-      amount: 120,
-      rating: null
-    },
-    {
-      id: '3',
-      expertName: 'Emma Wilson',
-      userName: 'Bob Johnson',
-      sessionTitle: 'Design Review',
-      date: '2024-01-14',
-      time: '04:00 PM',
-      status: 'cancelled',
-      amount: 100,
-      rating: null
-    }
-  ];
+  const removeLanguage = (index: number) => {
+    setNewExpert(prev => ({
+      ...prev,
+      languages: prev.languages.filter((_, i) => i !== index)
+    }));
+  };
 
-  const pendingExperts = [
-    {
-      id: '1',
-      name: 'Alex Rodriguez',
-      email: 'alex@example.com',
-      expertise: 'Data Science',
-      appliedDate: '2024-01-10',
-      status: 'pending'
-    },
-    {
-      id: '2',
-      name: 'Lisa Wang',
-      email: 'lisa@example.com',
-      expertise: 'Product Marketing',
-      appliedDate: '2024-01-12',
-      status: 'under_review'
-    }
-  ];
+  const updateLanguage = (index: number, value: string) => {
+    setNewExpert(prev => ({
+      ...prev,
+      languages: prev.languages.map((lang, i) => i === index ? value : lang)
+    }));
+  };
 
-  const topExperts = [
-    {
-      id: '1',
-      name: 'Dr. Sarah Johnson',
-      sessions: 45,
-      revenue: 6750,
-      rating: 4.9,
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Michael Chen',
-      sessions: 32,
-      revenue: 3840,
-      rating: 4.8,
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: 'Emma Wilson',
-      sessions: 28,
-      revenue: 2800,
-      rating: 4.6,
-      status: 'active'
+  const addSkill = () => {
+    setNewExpert(prev => ({
+      ...prev,
+      skills: [...prev.skills, '']
+    }));
+  };
+
+  const removeSkill = (index: number) => {
+    setNewExpert(prev => ({
+      ...prev,
+      skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateSkill = (index: number, value: string) => {
+    setNewExpert(prev => ({
+      ...prev,
+      skills: prev.skills.map((skill, i) => i === index ? value : skill)
+    }));
+  };
+
+  const addSessionType = () => {
+    setNewSessionTypes(prev => [
+      ...prev,
+      { title: '', description: '', duration: 30, price: 0, type: 'video' as const }
+    ]);
+  };
+
+  const removeSessionType = (index: number) => {
+    setNewSessionTypes(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateSessionType = (index: number, field: string, value: any) => {
+    setNewSessionTypes(prev =>
+      prev.map((session, i) =>
+        i === index ? { ...session, [field]: value } : session
+      )
+    );
+  };
+
+  const handleSubmitExpert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      // Create expert
+      const expertData = {
+        ...newExpert,
+        languages: newExpert.languages.filter(lang => lang.trim() !== ''),
+        skills: newExpert.skills.filter(skill => skill.trim() !== ''),
+        user_id: null, // Will be set when an actual user applies
+      };
+
+      const expert = await createExpertMutation.mutateAsync(expertData);
+
+      // Create session types
+      for (const sessionType of newSessionTypes) {
+        if (sessionType.title.trim() !== '') {
+          await createSessionTypeMutation.mutateAsync({
+            ...sessionType,
+            expert_id: expert.id,
+            price: sessionType.price * 100, // Convert to cents
+          });
+        }
+      }
+
+      toast.success('Expert added successfully!');
+      setIsAddingExpert(false);
+      setNewExpert({
+        title: '',
+        experience: '',
+        education: '',
+        languages: [''],
+        timezone: '',
+        location: '',
+        skills: [''],
+        hourly_rate: 0,
+        status: 'pending',
+      });
+      setNewSessionTypes([
+        { title: '', description: '', duration: 30, price: 0, type: 'video' }
+      ]);
+    } catch (error) {
+      toast.error('Failed to add expert');
+      console.error('Error adding expert:', error);
     }
-  ];
+  };
+
+  const handleApproveExpert = async (expertId: string) => {
+    try {
+      await updateExpertMutation.mutateAsync({
+        id: expertId,
+        updates: { status: 'approved' }
+      });
+      toast.success('Expert approved successfully!');
+    } catch (error) {
+      toast.error('Failed to approve expert');
+    }
+  };
+
+  const handleRejectExpert = async (expertId: string) => {
+    try {
+      await updateExpertMutation.mutateAsync({
+        id: expertId,
+        updates: { status: 'rejected' }
+      });
+      toast.success('Expert rejected');
+    } catch (error) {
+      toast.error('Failed to reject expert');
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      completed: 'bg-green-100 text-green-800',
-      upcoming: 'bg-blue-100 text-blue-800',
-      cancelled: 'bg-red-100 text-red-800',
-      active: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      under_review: 'bg-orange-100 text-orange-800'
-    };
-    return variants[status as keyof typeof variants] || 'bg-gray-100 text-gray-800';
+      pending: 'secondary',
+      approved: 'default',
+      rejected: 'destructive',
+      active: 'default',
+      inactive: 'secondary',
+    } as const;
+    
+    return <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>{status}</Badge>;
   };
 
-  const handleApproveExpert = (expertId: string) => {
-    console.log('Approving expert:', expertId);
-    // Add approval logic here
-  };
-
-  const handleRejectExpert = (expertId: string) => {
-    console.log('Rejecting expert:', expertId);
-    // Add rejection logic here
-  };
-
-  const handleAddExpert = (data: any) => {
-    console.log('Adding new expert:', data);
-    // Add expert creation logic here
-    setIsAddExpertOpen(false);
-    form.reset();
-  };
-
-  const addSessionField = () => {
-    const currentSessions = form.getValues('sessions');
-    form.setValue('sessions', [...currentSessions, { title: '', description: '', duration: '', price: '' }]);
-  };
-
-  const removeSessionField = (index: number) => {
-    const currentSessions = form.getValues('sessions');
-    if (currentSessions.length > 1) {
-      form.setValue('sessions', currentSessions.filter((_, i) => i !== index));
-    }
+  const stats = {
+    totalExperts: experts.length,
+    pendingApprovals: experts.filter(e => e.status === 'pending').length,
+    totalBookings: bookings.length,
+    totalRevenue: bookings.reduce((sum, booking) => sum + booking.price, 0) / 100,
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.name}! Here's what's happening on your platform.</p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-600">Manage experts and monitor platform activity</p>
+          </div>
+          <Button onClick={() => setIsAddingExpert(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Expert
+          </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="experts">Expert Management</TabsTrigger>
-            <TabsTrigger value="sessions">Sessions</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Experts</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalExperts}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+              <Edit className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.pendingApprovals}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalBookings}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${stats.totalRevenue}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="experts" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="experts">Experts</TabsTrigger>
+            <TabsTrigger value="bookings">Bookings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Experts</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalExperts}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +2 from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <UserCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalUsers}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +12 from last week
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalSessions}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +8 from last week
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">${stats.monthlyRevenue}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +20.1% from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.pendingExperts}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Experts waiting for approval
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
-                  <Star className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.avgRating}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Platform average
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent Sessions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Sessions</CardTitle>
-                <CardDescription>Latest session bookings and completions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Expert</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Session</TableHead>
-                      <TableHead>Date & Time</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Rating</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentSessions.map((session) => (
-                      <TableRow key={session.id}>
-                        <TableCell className="font-medium">{session.expertName}</TableCell>
-                        <TableCell>{session.userName}</TableCell>
-                        <TableCell>{session.sessionTitle}</TableCell>
-                        <TableCell>{session.date} at {session.time}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadge(session.status)}>
-                            {session.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>${session.amount}</TableCell>
-                        <TableCell>
-                          {session.rating ? (
-                            <div className="flex items-center">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                              {session.rating}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="experts" className="space-y-6">
-            {/* Add Expert Button */}
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">Expert Management</h2>
-                <p className="text-muted-foreground">Manage expert applications and existing experts</p>
-              </div>
-              <Dialog open={isAddExpertOpen} onOpenChange={setIsAddExpertOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Expert
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Expert</DialogTitle>
-                    <DialogDescription>
-                      Add a new expert to the platform with complete profile information.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleAddExpert)} className="space-y-4">
-                      {/* Basic Information */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Full Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Dr. Sarah Johnson" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input type="email" placeholder="sarah@example.com" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Professional Title</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Product Management Expert" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="bio"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Bio</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Former VP of Product at major tech companies with 10+ years of experience..." 
-                                className="min-h-[100px]"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Professional Details */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="experience"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Experience</FormLabel>
-                              <FormControl>
-                                <Input placeholder="10+ years in Product Management" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="education"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Education</FormLabel>
-                              <FormControl>
-                                <Input placeholder="MBA from Stanford, BS Computer Science from MIT" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="languages"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Languages</FormLabel>
-                              <FormControl>
-                                <Input placeholder="English, Spanish" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="timezone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Timezone</FormLabel>
-                              <FormControl>
-                                <Input placeholder="PST (UTC-8)" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="location"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Location</FormLabel>
-                              <FormControl>
-                                <Input placeholder="San Francisco, CA" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="hourlyRate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Base Hourly Rate ($)</FormLabel>
-                              <FormControl>
-                                <Input type="number" placeholder="150" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <FormField
-                        control={form.control}
-                        name="skills"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Skills (comma-separated)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Product Strategy, Team Leadership, User Research, Agile Methodologies" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Available Sessions */}
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <FormLabel>Available Sessions</FormLabel>
-                          <Button type="button" variant="outline" size="sm" onClick={addSessionField}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add Session
-                          </Button>
-                        </div>
-                        
-                        {form.watch('sessions').map((_, index) => (
-                          <div key={index} className="border rounded-lg p-4 space-y-3">
-                            <div className="flex justify-between items-center">
-                              <h4 className="font-medium">Session {index + 1}</h4>
-                              {form.watch('sessions').length > 1 && (
-                                <Button 
-                                  type="button" 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => removeSessionField(index)}
-                                >
-                                  Remove
-                                </Button>
-                              )}
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                              <FormField
-                                control={form.control}
-                                name={`sessions.${index}.title`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Session Title</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="1:1 Product Strategy Session" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`sessions.${index}.duration`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Duration (minutes)</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="60" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                              <FormField
-                                control={form.control}
-                                name={`sessions.${index}.description`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Deep dive into your product strategy..." {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`sessions.${index}.price`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Price ($)</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="150" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setIsAddExpertOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit">Add Expert</Button>
-                      </div>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {/* Pending Expert Approvals */}
             <Card>
               <CardHeader>
-                <CardTitle>Pending Expert Applications</CardTitle>
-                <CardDescription>Review and approve new expert applications</CardDescription>
+                <CardTitle>Expert Management</CardTitle>
+                <CardDescription>
+                  Review and manage expert applications and profiles
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Expertise</TableHead>
-                      <TableHead>Applied Date</TableHead>
+                      <TableHead>Title</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingExperts.map((expert) => (
-                      <TableRow key={expert.id}>
-                        <TableCell className="font-medium">{expert.name}</TableCell>
-                        <TableCell>{expert.email}</TableCell>
-                        <TableCell>{expert.expertise}</TableCell>
-                        <TableCell>{expert.appliedDate}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadge(expert.status)}>
-                            {expert.status.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleApproveExpert(expert.id)}
-                            >
-                              Approve
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleRejectExpert(expert.id)}
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            {/* Top Performing Experts */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Performing Experts</CardTitle>
-                <CardDescription>Experts with highest bookings and ratings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Expert</TableHead>
-                      <TableHead>Sessions</TableHead>
-                      <TableHead>Revenue</TableHead>
                       <TableHead>Rating</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Sessions</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {topExperts.map((expert) => (
+                    {experts.map((expert) => (
                       <TableRow key={expert.id}>
-                        <TableCell className="font-medium">{expert.name}</TableCell>
-                        <TableCell>{expert.sessions}</TableCell>
-                        <TableCell>${expert.revenue}</TableCell>
+                        <TableCell>
+                          {expert.profiles?.name || 'N/A'}
+                        </TableCell>
+                        <TableCell>{expert.title}</TableCell>
+                        <TableCell>{getStatusBadge(expert.status)}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                            {expert.rating}
+                            <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                            {expert.rating?.toFixed(1) || 'N/A'}
                           </div>
                         </TableCell>
+                        <TableCell>{expert.sessions_completed || 0}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusBadge(expert.status)}>
-                            {expert.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline">
-                            View Profile
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="sessions" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Sessions</CardTitle>
-                <CardDescription>Complete session management and monitoring</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4 flex gap-4">
-                  <Button variant="outline">Filter by Date</Button>
-                  <Button variant="outline">Filter by Expert</Button>
-                  <Button variant="outline">Filter by Status</Button>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Session ID</TableHead>
-                      <TableHead>Expert</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Date & Time</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentSessions.map((session) => (
-                      <TableRow key={session.id}>
-                        <TableCell className="font-medium">#{session.id.padStart(4, '0')}</TableCell>
-                        <TableCell>{session.expertName}</TableCell>
-                        <TableCell>{session.userName}</TableCell>
-                        <TableCell>{session.date} at {session.time}</TableCell>
-                        <TableCell>60 min</TableCell>
-                        <TableCell>${session.amount}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadge(session.status)}>
-                            {session.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              View
-                            </Button>
-                            {session.status === 'upcoming' && (
-                              <Button size="sm" variant="outline">
-                                Cancel
-                              </Button>
+                          <div className="flex space-x-2">
+                            {expert.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApproveExpert(expert.id)}
+                                  disabled={updateExpertMutation.isPending}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleRejectExpert(expert.id)}
+                                  disabled={updateExpertMutation.isPending}
+                                >
+                                  Reject
+                                </Button>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -772,94 +326,311 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Revenue Analytics</CardTitle>
-                  <CardDescription>Monthly revenue trends</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold mb-2">${stats.monthlyRevenue}</div>
-                  <div className="flex items-center text-sm text-green-600">
-                    <TrendingUp className="h-4 w-4 mr-1" />
-                    +20.1% from last month
-                  </div>
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    Platform commission: ${Math.round(stats.monthlyRevenue * 0.15)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Session Analytics</CardTitle>
-                  <CardDescription>Session completion and booking rates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Completion Rate</span>
-                      <span className="text-sm font-medium">94%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Cancellation Rate</span>
-                      <span className="text-sm font-medium">6%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Average Duration</span>
-                      <span className="text-sm font-medium">58 min</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Growth</CardTitle>
-                  <CardDescription>New user registrations</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold mb-2">+24</div>
-                  <div className="text-sm text-muted-foreground">New users this week</div>
-                  <div className="mt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>This week</span>
-                      <span>24 users</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Last week</span>
-                      <span>18 users</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Expert Performance</CardTitle>
-                  <CardDescription>Average expert metrics</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Average Rating</span>
-                      <span className="text-sm font-medium">4.7/5</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Sessions per Expert</span>
-                      <span className="text-sm font-medium">3.7</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Average Earnings</span>
-                      <span className="text-sm font-medium">$642</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          <TabsContent value="bookings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Bookings</CardTitle>
+                <CardDescription>
+                  Monitor all platform bookings and sessions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Expert</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bookings.map((booking) => (
+                      <TableRow key={booking.id}>
+                        <TableCell>{booking.profiles?.name || 'N/A'}</TableCell>
+                        <TableCell>{booking.experts?.profiles?.name || 'N/A'}</TableCell>
+                        <TableCell>
+                          {new Date(booking.scheduled_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{booking.duration} min</TableCell>
+                        <TableCell>${(booking.price / 100).toFixed(2)}</TableCell>
+                        <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Add Expert Modal */}
+        {isAddingExpert && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <CardHeader>
+                <CardTitle>Add New Expert</CardTitle>
+                <CardDescription>
+                  Create a new expert profile with session offerings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitExpert} className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="title">Professional Title</Label>
+                      <Input
+                        id="title"
+                        value={newExpert.title}
+                        onChange={(e) => setNewExpert(prev => ({ ...prev, title: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="hourly_rate">Hourly Rate ($)</Label>
+                      <Input
+                        id="hourly_rate"
+                        type="number"
+                        value={newExpert.hourly_rate}
+                        onChange={(e) => setNewExpert(prev => ({ ...prev, hourly_rate: parseInt(e.target.value) }))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        value={newExpert.location}
+                        onChange={(e) => setNewExpert(prev => ({ ...prev, location: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="timezone">Timezone</Label>
+                      <Input
+                        id="timezone"
+                        value={newExpert.timezone}
+                        onChange={(e) => setNewExpert(prev => ({ ...prev, timezone: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="experience">Experience</Label>
+                    <Textarea
+                      id="experience"
+                      value={newExpert.experience}
+                      onChange={(e) => setNewExpert(prev => ({ ...prev, experience: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="education">Education</Label>
+                    <Textarea
+                      id="education"
+                      value={newExpert.education}
+                      onChange={(e) => setNewExpert(prev => ({ ...prev, education: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Languages */}
+                  <div>
+                    <Label>Languages</Label>
+                    {newExpert.languages.map((language, index) => (
+                      <div key={index} className="flex items-center space-x-2 mt-2">
+                        <Input
+                          value={language}
+                          onChange={(e) => updateLanguage(index, e.target.value)}
+                          placeholder="Enter language"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeLanguage(index)}
+                          disabled={newExpert.languages.length === 1}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addLanguage}
+                      className="mt-2"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Language
+                    </Button>
+                  </div>
+
+                  {/* Skills */}
+                  <div>
+                    <Label>Skills</Label>
+                    {newExpert.skills.map((skill, index) => (
+                      <div key={index} className="flex items-center space-x-2 mt-2">
+                        <Input
+                          value={skill}
+                          onChange={(e) => updateSkill(index, e.target.value)}
+                          placeholder="Enter skill"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeSkill(index)}
+                          disabled={newExpert.skills.length === 1}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSkill}
+                      className="mt-2"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Skill
+                    </Button>
+                  </div>
+
+                  {/* Session Types */}
+                  <div>
+                    <Label>Available Sessions</Label>
+                    {newSessionTypes.map((session, index) => (
+                      <div key={index} className="border p-4 rounded-lg mt-2 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor={`session-title-${index}`}>Session Title</Label>
+                            <Input
+                              id={`session-title-${index}`}
+                              value={session.title}
+                              onChange={(e) => updateSessionType(index, 'title', e.target.value)}
+                              placeholder="e.g., Initial Consultation"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`session-duration-${index}`}>Duration (minutes)</Label>
+                            <Input
+                              id={`session-duration-${index}`}
+                              type="number"
+                              value={session.duration}
+                              onChange={(e) => updateSessionType(index, 'duration', parseInt(e.target.value))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`session-price-${index}`}>Price ($)</Label>
+                            <Input
+                              id={`session-price-${index}`}
+                              type="number"
+                              value={session.price}
+                              onChange={(e) => updateSessionType(index, 'price', parseInt(e.target.value))}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor={`session-type-${index}`}>Session Type</Label>
+                            <Select
+                              value={session.type}
+                              onValueChange={(value) => updateSessionType(index, 'type', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="video">Video Call</SelectItem>
+                                <SelectItem value="audio">Audio Call</SelectItem>
+                                <SelectItem value="chat">Chat</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeSessionType(index)}
+                              disabled={newSessionTypes.length === 1}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Remove Session
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor={`session-description-${index}`}>Description</Label>
+                          <Textarea
+                            id={`session-description-${index}`}
+                            value={session.description}
+                            onChange={(e) => updateSessionType(index, 'description', e.target.value)}
+                            placeholder="Describe what this session includes..."
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSessionType}
+                      className="mt-2"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Session Type
+                    </Button>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={newExpert.status}
+                      onValueChange={(value) => setNewExpert(prev => ({ ...prev, status: value as any }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex justify-end space-x-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsAddingExpert(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createExpertMutation.isPending}
+                    >
+                      {createExpertMutation.isPending ? 'Adding...' : 'Add Expert'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

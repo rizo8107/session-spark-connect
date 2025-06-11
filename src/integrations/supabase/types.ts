@@ -9,7 +9,259 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      availability: {
+        Row: {
+          created_at: string | null
+          day_of_week: number | null
+          end_time: string
+          expert_id: string | null
+          id: string
+          is_available: boolean | null
+          start_time: string
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week?: number | null
+          end_time: string
+          expert_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number | null
+          end_time?: string
+          expert_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_expert_id_fkey"
+            columns: ["expert_id"]
+            isOneToOne: false
+            referencedRelation: "experts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          created_at: string | null
+          duration: number
+          expert_id: string | null
+          feedback: string | null
+          id: string
+          meeting_link: string | null
+          notes: string | null
+          price: number
+          rating: number | null
+          scheduled_at: string
+          session_type_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration: number
+          expert_id?: string | null
+          feedback?: string | null
+          id?: string
+          meeting_link?: string | null
+          notes?: string | null
+          price: number
+          rating?: number | null
+          scheduled_at: string
+          session_type_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number
+          expert_id?: string | null
+          feedback?: string | null
+          id?: string
+          meeting_link?: string | null
+          notes?: string | null
+          price?: number
+          rating?: number | null
+          scheduled_at?: string
+          session_type_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_expert_id_fkey"
+            columns: ["expert_id"]
+            isOneToOne: false
+            referencedRelation: "experts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_session_type_id_fkey"
+            columns: ["session_type_id"]
+            isOneToOne: false
+            referencedRelation: "session_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      experts: {
+        Row: {
+          created_at: string | null
+          education: string | null
+          experience: string | null
+          hourly_rate: number | null
+          id: string
+          languages: string[] | null
+          location: string | null
+          rating: number | null
+          response_time: string | null
+          reviews_count: number | null
+          sessions_completed: number | null
+          skills: string[] | null
+          status: string | null
+          timezone: string | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          education?: string | null
+          experience?: string | null
+          hourly_rate?: number | null
+          id?: string
+          languages?: string[] | null
+          location?: string | null
+          rating?: number | null
+          response_time?: string | null
+          reviews_count?: number | null
+          sessions_completed?: number | null
+          skills?: string[] | null
+          status?: string | null
+          timezone?: string | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          education?: string | null
+          experience?: string | null
+          hourly_rate?: number | null
+          id?: string
+          languages?: string[] | null
+          location?: string | null
+          rating?: number | null
+          response_time?: string | null
+          reviews_count?: number | null
+          sessions_completed?: number | null
+          skills?: string[] | null
+          status?: string | null
+          timezone?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      session_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration: number
+          expert_id: string | null
+          id: string
+          price: number
+          title: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration: number
+          expert_id?: string | null
+          id?: string
+          price: number
+          title: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration?: number
+          expert_id?: string | null
+          id?: string
+          price?: number
+          title?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_types_expert_id_fkey"
+            columns: ["expert_id"]
+            isOneToOne: false
+            referencedRelation: "experts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
