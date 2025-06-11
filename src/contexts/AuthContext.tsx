@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -65,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: profile.id,
                 email: profile.email,
                 name: profile.name,
-                role: profile.role,
+                role: (profile.role as 'user' | 'expert' | 'admin') || 'user',
                 avatar_url: profile.avatar_url || undefined,
                 bio: profile.bio || undefined,
               };
@@ -96,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   id: newProfile.id,
                   email: newProfile.email,
                   name: newProfile.name,
-                  role: newProfile.role,
+                  role: (newProfile.role as 'user' | 'expert' | 'admin') || 'user',
                   avatar_url: newProfile.avatar_url || undefined,
                   bio: newProfile.bio || undefined,
                 });
@@ -173,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: data.id,
             email: data.email,
             name: data.name,
-            role: data.role,
+            role: (data.role as 'user' | 'expert' | 'admin') || 'user',
             avatar_url: data.avatar_url || undefined,
             bio: data.bio || undefined,
         };
