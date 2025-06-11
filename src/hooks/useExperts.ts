@@ -105,3 +105,24 @@ export const useAdminExperts = () => {
     },
   });
 };
+
+export const useCreateSessionType = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (sessionType: TablesInsert<'session_types'>) => {
+      const { data, error } = await supabase
+        .from('session_types')
+        .insert(sessionType)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['experts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-experts'] });
+    },
+  });
+};
