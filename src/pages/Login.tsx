@@ -27,34 +27,52 @@ const Login = () => {
 
   // Redirect if user is already logged in
   useEffect(() => {
-    console.log('Login useEffect - user:', user, 'authLoading:', authLoading);
+    console.log('Login useEffect - user:', user?.email, 'role:', user?.role, 'authLoading:', authLoading);
     if (user && !authLoading) {
-      console.log('User is logged in, redirecting to:', from);
-      navigate(from, { replace: true });
+      console.log('User is logged in, determining redirect path...');
+      let redirectPath = '/dashboard';
+      
+      // Determine redirect path based on user role
+      if (user.role === 'admin') {
+        redirectPath = '/admin-dashboard';
+      } else if (user.role === 'expert') {
+        redirectPath = '/expert-dashboard';
+      } else {
+        redirectPath = '/dashboard';
+      }
+      
+      // Use the original 'from' path if it's not the login page
+      const finalPath = from !== '/login' ? from : redirectPath;
+      
+      console.log('Redirecting to:', finalPath);
+      navigate(finalPath, { replace: true });
     }
   }, [user, authLoading, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading || authLoading) return;
+    
     setIsLoading(true);
 
     try {
       console.log('Attempting login for:', email);
       await login(email, password);
-      console.log('Login successful, waiting for auth state to update');
+      console.log('Login successful, auth state should update automatically');
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
-      clearForm(); // Clear form on successful login
-      // The useEffect above will handle the navigation when user state updates
-    } catch (error) {
+      clearForm();
+      // Navigation will be handled by the useEffect above when user state updates
+    } catch (error: any) {
       console.error('Login failed:', error);
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: error.message || "Please check your credentials and try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -102,6 +120,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -113,13 +132,14 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="flex space-x-2">
               <Button type="submit" className="flex-1" disabled={isLoading || authLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
-              <Button type="button" variant="outline" onClick={clearForm}>
+              <Button type="button" variant="outline" onClick={clearForm} disabled={isLoading}>
                 Clear
               </Button>
             </div>

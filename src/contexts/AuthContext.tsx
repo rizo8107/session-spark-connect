@@ -40,83 +40,120 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthProvider mounted. Setting up auth state listener.');
     let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        console.log(`Auth state change event: ${event}`, session?.user?.email);
-        setSession(session);
-
-        try {
-          if (session?.user) {
-            // User is authenticated, fetch their profile from the 'profiles' table.
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (error && error.code !== 'PGRST116') {
-              // An unexpected error occurred (not 'profile not found').
-              console.error('Error fetching profile:', error);
-              setUser(null);
-            } else if (profile) {
-              // Profile found, create our custom user object.
-              const userData: User = {
-                id: profile.id,
-                email: profile.email,
-                name: profile.name,
-                role: (profile.role as 'user' | 'expert' | 'admin') || 'user',
-                avatar_url: profile.avatar_url || undefined,
-                bio: profile.bio || undefined,
-              };
-              console.log('Setting user from existing profile:', userData.email);
-              setUser(userData);
-            } else if (error?.code === 'PGRST116') {
-              // This case handles when a user exists in `auth.users` but has no `profiles` row.
-              console.warn('Profile not found, attempting to create one.');
-              const { data: newProfile, error: insertError } = await supabase
-                .from('profiles')
-                .insert({
-                  id: session.user.id,
-                  email: session.user.email!,
-                  name: session.user.user_metadata?.name || session.user.email!,
-                  role: 'user'
-                })
-                .select()
-                .single();
-
-              if (insertError) {
-                console.error('Error creating profile:', insertError);
-                setUser(null);
-              } else if (newProfile) {
-                console.log('Successfully created and set new profile for:', newProfile.email);
-                setUser({
-                  id: newProfile.id,
-                  email: newProfile.email,
-                  name: newProfile.name,
-                  role: (newProfile.role as 'user' | 'expert' | 'admin') || 'user',
-                  avatar_url: newProfile.avatar_url || undefined,
-                  bio: newProfile.bio || undefined,
-                });
-              }
-            }
-          } else {
-            // User is not authenticated.
-            console.log('No session, clearing user.');
-            setUser(null);
-          }
-        } catch (e) {
-          console.error('An unexpected error occurred in onAuthStateChange:', e);
-          setUser(null);
-        } finally {
-          // Always set loading to false after handling auth state
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting initial session:', error);
           if (mounted) {
             setIsLoading(false);
           }
+          return;
+        }
+        
+        if (mounted && session) {
+          console.log('Initial session found:', session.user.email);
+          await handleAuthState(session);
+        } else if (mounted) {
+          console.log('No initial session found');
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+        if (mounted) {
+          setIsLoading(false);
         }
       }
+    };
+
+    const handleAuthState = async (session: Session | null) => {
+      if (!mounted) return;
+      
+      console.log('Handling auth state change:', session?.user?.email || 'No session');
+      setSession(session);
+
+      try {
+        if (session?.user) {
+          // User is authenticated, fetch their profile from the 'profiles' table.
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            // An unexpected error occurred (not 'profile not found').
+            console.error('Error fetching profile:', error);
+            setUser(null);
+          } else if (profile) {
+            // Profile found, create our custom user object.
+            const userData: User = {
+              id: profile.id,
+              email: profile.email,
+              name: profile.name,
+              role: (profile.role as 'user' | 'expert' | 'admin') || 'user',
+              avatar_url: profile.avatar_url || undefined,
+              bio: profile.bio || undefined,
+            };
+            console.log('Setting user from existing profile:', userData.email, 'Role:', userData.role);
+            setUser(userData);
+          } else if (error?.code === 'PGRST116') {
+            // This case handles when a user exists in `auth.users` but has no `profiles` row.
+            console.warn('Profile not found, attempting to create one.');
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                email: session.user.email!,
+                name: session.user.user_metadata?.name || session.user.email!,
+                role: 'user'
+              })
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+              setUser(null);
+            } else if (newProfile) {
+              console.log('Successfully created and set new profile for:', newProfile.email);
+              setUser({
+                id: newProfile.id,
+                email: newProfile.email,
+                name: newProfile.name,
+                role: (newProfile.role as 'user' | 'expert' | 'admin') || 'user',
+                avatar_url: newProfile.avatar_url || undefined,
+                bio: newProfile.bio || undefined,
+              });
+            }
+          }
+        } else {
+          // User is not authenticated.
+          console.log('No session, clearing user.');
+          setUser(null);
+        }
+      } catch (e) {
+        console.error('An unexpected error occurred in handleAuthState:', e);
+        setUser(null);
+      } finally {
+        // Always set loading to false after handling auth state
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        console.log(`Auth state change event: ${event}`, session?.user?.email);
+        await handleAuthState(session);
+      }
     );
+
+    // Get initial session
+    getInitialSession();
 
     // Cleanup function
     return () => {
@@ -127,11 +164,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log('Attempting login for:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) throw error;
+    if (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+    console.log('Login successful');
   };
 
   const register = async (email: string, password: string, name: string, role = 'user') => {
