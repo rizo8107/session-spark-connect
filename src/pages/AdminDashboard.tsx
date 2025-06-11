@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -9,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Users, Calendar, DollarSign, TrendingUp, UserCheck, AlertCircle, Star, Clock, Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
@@ -21,9 +23,23 @@ const AdminDashboard = () => {
     defaultValues: {
       name: '',
       email: '',
-      expertise: '',
+      title: '',
+      bio: '',
+      experience: '',
+      education: '',
+      languages: '',
+      timezone: '',
+      location: '',
+      skills: '',
       hourlyRate: '',
-      bio: ''
+      sessions: [
+        {
+          title: '',
+          description: '',
+          duration: '',
+          price: ''
+        }
+      ]
     }
   });
 
@@ -146,6 +162,18 @@ const AdminDashboard = () => {
     // Add expert creation logic here
     setIsAddExpertOpen(false);
     form.reset();
+  };
+
+  const addSessionField = () => {
+    const currentSessions = form.getValues('sessions');
+    form.setValue('sessions', [...currentSessions, { title: '', description: '', duration: '', price: '' }]);
+  };
+
+  const removeSessionField = (index: number) => {
+    const currentSessions = form.getValues('sessions');
+    if (currentSessions.length > 1) {
+      form.setValue('sessions', currentSessions.filter((_, i) => i !== index));
+    }
   };
 
   return (
@@ -311,67 +339,59 @@ const AdminDashboard = () => {
                     Add Expert
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Expert</DialogTitle>
                     <DialogDescription>
-                      Add a new expert to the platform manually.
+                      Add a new expert to the platform with complete profile information.
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleAddExpert)} className="space-y-4">
+                      {/* Basic Information */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Dr. Sarah Johnson" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="sarah@example.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <FormField
                         control={form.control}
-                        name="name"
+                        name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel>Professional Title</FormLabel>
                             <FormControl>
-                              <Input placeholder="Dr. Sarah Johnson" {...field} />
+                              <Input placeholder="Product Management Expert" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="sarah@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="expertise"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Expertise</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Product Strategy" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="hourlyRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Hourly Rate ($)</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="150" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+
                       <FormField
                         control={form.control}
                         name="bio"
@@ -379,13 +399,207 @@ const AdminDashboard = () => {
                           <FormItem>
                             <FormLabel>Bio</FormLabel>
                             <FormControl>
-                              <Input placeholder="Brief description of expertise..." {...field} />
+                              <Textarea 
+                                placeholder="Former VP of Product at major tech companies with 10+ years of experience..." 
+                                className="min-h-[100px]"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <div className="flex justify-end gap-2">
+
+                      {/* Professional Details */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="experience"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Experience</FormLabel>
+                              <FormControl>
+                                <Input placeholder="10+ years in Product Management" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="education"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Education</FormLabel>
+                              <FormControl>
+                                <Input placeholder="MBA from Stanford, BS Computer Science from MIT" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="languages"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Languages</FormLabel>
+                              <FormControl>
+                                <Input placeholder="English, Spanish" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="timezone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Timezone</FormLabel>
+                              <FormControl>
+                                <Input placeholder="PST (UTC-8)" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="location"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Location</FormLabel>
+                              <FormControl>
+                                <Input placeholder="San Francisco, CA" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="hourlyRate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Base Hourly Rate ($)</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="150" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="skills"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Skills (comma-separated)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Product Strategy, Team Leadership, User Research, Agile Methodologies" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Available Sessions */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <FormLabel>Available Sessions</FormLabel>
+                          <Button type="button" variant="outline" size="sm" onClick={addSessionField}>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Session
+                          </Button>
+                        </div>
+                        
+                        {form.watch('sessions').map((_, index) => (
+                          <div key={index} className="border rounded-lg p-4 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-medium">Session {index + 1}</h4>
+                              {form.watch('sessions').length > 1 && (
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => removeSessionField(index)}
+                                >
+                                  Remove
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <FormField
+                                control={form.control}
+                                name={`sessions.${index}.title`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Session Title</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="1:1 Product Strategy Session" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`sessions.${index}.duration`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Duration (minutes)</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" placeholder="60" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <FormField
+                                control={form.control}
+                                name={`sessions.${index}.description`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Description</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Deep dive into your product strategy..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`sessions.${index}.price`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Price ($)</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" placeholder="150" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-4">
                         <Button type="button" variant="outline" onClick={() => setIsAddExpertOpen(false)}>
                           Cancel
                         </Button>
