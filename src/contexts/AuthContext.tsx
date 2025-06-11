@@ -78,35 +78,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .single();
                   
                   if (newProfile) {
-                    setUser({
+                    const userData = {
                       id: newProfile.id,
                       email: newProfile.email,
                       name: newProfile.name,
                       role: newProfile.role as 'user' | 'expert' | 'admin',
                       avatar_url: newProfile.avatar_url || undefined,
                       bio: newProfile.bio || undefined,
-                    });
+                    };
+                    console.log('Setting user from new profile:', userData);
+                    setUser(userData);
                   }
                 }
               }
             } else if (profile) {
-              setUser({
+              const userData = {
                 id: profile.id,
                 email: profile.email,
                 name: profile.name,
                 role: profile.role as 'user' | 'expert' | 'admin',
                 avatar_url: profile.avatar_url || undefined,
                 bio: profile.bio || undefined,
-              });
+              };
+              console.log('Setting user from existing profile:', userData);
+              setUser(userData);
             }
           } catch (error) {
             console.error('Error in auth state change:', error);
           }
         } else {
+          console.log('No session, clearing user');
           setUser(null);
         }
         
-        // Always set loading to false after processing auth state change
+        console.log('Setting isLoading to false');
         setIsLoading(false);
       }
     );
@@ -119,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error getting session:', error);
           setIsLoading(false);
         } else if (!session) {
+          console.log('No initial session found');
           setIsLoading(false);
         }
         // If session exists, the onAuthStateChange will handle it
@@ -151,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       console.log('Login successful:', data.user?.email);
-      // Don't manually set loading state here - let the auth state change handle it
+      // The auth state change handler will update the user state
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Login failed');
     }
