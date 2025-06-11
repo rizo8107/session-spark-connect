@@ -21,6 +21,7 @@ const Login = () => {
 
   // Redirect if user is already logged in
   useEffect(() => {
+    console.log('Login useEffect - user:', user, 'authLoading:', authLoading);
     if (user && !authLoading) {
       console.log('User is logged in, redirecting to:', from);
       navigate(from, { replace: true });
@@ -34,12 +35,12 @@ const Login = () => {
     try {
       console.log('Attempting login for:', email);
       await login(email, password);
-      console.log('Login successful, should redirect automatically via useEffect');
+      console.log('Login successful, waiting for auth state to update');
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
-      // Don't navigate here - let the useEffect handle it after user state updates
+      // The useEffect above will handle the navigation when user state updates
     } catch (error) {
       console.error('Login failed:', error);
       toast({
@@ -47,13 +48,23 @@ const Login = () => {
         description: "Please check your credentials and try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
 
   // Show loading state while auth is initializing
   if (authLoading) {
+    console.log('Showing auth loading spinner');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If user is already logged in, show loading while we redirect
+  if (user) {
+    console.log('User exists, showing redirect loading');
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -97,7 +108,7 @@ const Login = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
