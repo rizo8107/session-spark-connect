@@ -34,21 +34,21 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  // isLoading is true only until the initial auth state is determined.
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // This effect runs only once on mount to set up the auth listener.
-    // Supabase's onAuthStateChange handles the initial session check automatically.
     console.log('AuthProvider mounted. Setting up auth state listener.');
+    let mounted = true;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log(`Auth state change event: ${event}`, session?.user?.email);
         setSession(session);
 
-        if (session?.user) {
-          try {
+        try {
+          if (session?.user) {
             // User is authenticated, fetch their profile from the 'profiles' table.
             const { data: profile, error } = await supabase
               .from('profiles')
@@ -74,8 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(userData);
             } else if (error?.code === 'PGRST116') {
               // This case handles when a user exists in `auth.users` but has no `profiles` row.
-              // This can happen if a database trigger for profile creation fails.
-              // We'll create a profile for them here as a fallback.
               console.warn('Profile not found, attempting to create one.');
               const { data: newProfile, error: insertError } = await supabase
                 .from('profiles')
@@ -103,29 +101,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
               }
             }
-          } catch (e) {
-            console.error('An unexpected error occurred in onAuthStateChange:', e);
+          } else {
+            // User is not authenticated.
+            console.log('No session, clearing user.');
             setUser(null);
           }
-        } else {
-          // User is not authenticated.
-          console.log('No session, clearing user.');
+        } catch (e) {
+          console.error('An unexpected error occurred in onAuthStateChange:', e);
           setUser(null);
+        } finally {
+          // Always set loading to false after handling auth state
+          if (mounted) {
+            setIsLoading(false);
+          }
         }
-
-        // IMPORTANT: The loading state should be set to false after the first
-        // auth event is handled, establishing whether a user is logged in or not.
-        setIsLoading(false);
       }
     );
 
-    // Cleanup function: Unsubscribe from the listener when the component unmounts.
+    // Cleanup function
     return () => {
+      mounted = false;
       console.log('AuthProvider unmounted. Cleaning up auth subscription.');
       subscription.unsubscribe();
     };
-  }, []); // The empty dependency array ensures this effect runs only once.
-
+  }, []);
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -133,7 +132,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
     });
     if (error) throw error;
-    // The onAuthStateChange listener will handle updating the user state.
   };
 
   const register = async (email: string, password: string, name: string, role = 'user') => {
@@ -143,12 +141,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: {
         data: {
           name: name,
-          role: role, // This metadata can be used by a DB trigger to create the profile.
+          role: role,
         },
       },
     });
     if (error) throw error;
-    // The onAuthStateChange listener will handle the new user.
   };
 
   const logout = async () => {
@@ -168,7 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (error) throw error;
 
-    // Update the local state with the successfully updated data.
     if (data) {
         const updatedUser: User = {
             id: data.id,
