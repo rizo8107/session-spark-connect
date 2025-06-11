@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -7,11 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Calendar, DollarSign, TrendingUp, UserCheck, AlertCircle, Star, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Users, Calendar, DollarSign, TrendingUp, UserCheck, AlertCircle, Star, Clock, Plus } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isAddExpertOpen, setIsAddExpertOpen] = useState(false);
+
+  const form = useForm({
+    defaultValues: {
+      name: '',
+      email: '',
+      expertise: '',
+      hourlyRate: '',
+      bio: ''
+    }
+  });
 
   // Mock data
   const stats = {
@@ -125,6 +139,13 @@ const AdminDashboard = () => {
   const handleRejectExpert = (expertId: string) => {
     console.log('Rejecting expert:', expertId);
     // Add rejection logic here
+  };
+
+  const handleAddExpert = (data: any) => {
+    console.log('Adding new expert:', data);
+    // Add expert creation logic here
+    setIsAddExpertOpen(false);
+    form.reset();
   };
 
   return (
@@ -277,6 +298,105 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="experts" className="space-y-6">
+            {/* Add Expert Button */}
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Expert Management</h2>
+                <p className="text-muted-foreground">Manage expert applications and existing experts</p>
+              </div>
+              <Dialog open={isAddExpertOpen} onOpenChange={setIsAddExpertOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Expert
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Expert</DialogTitle>
+                    <DialogDescription>
+                      Add a new expert to the platform manually.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleAddExpert)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Dr. Sarah Johnson" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="sarah@example.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="expertise"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Expertise</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Product Strategy" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="hourlyRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Hourly Rate ($)</FormLabel>
+                            <FormControl>
+                              <Input type="number" placeholder="150" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="bio"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bio</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Brief description of expertise..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setIsAddExpertOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit">Add Expert</Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
             {/* Pending Expert Approvals */}
             <Card>
               <CardHeader>
