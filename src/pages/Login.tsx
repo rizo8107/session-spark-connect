@@ -19,6 +19,12 @@ const Login = () => {
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
 
+  // Clear form fields
+  const clearForm = () => {
+    setEmail('');
+    setPassword('');
+  };
+
   // Redirect if user is already logged in
   useEffect(() => {
     console.log('Login useEffect - user:', user, 'authLoading:', authLoading);
@@ -40,6 +46,7 @@ const Login = () => {
         title: "Login successful",
         description: "Welcome back!",
       });
+      clearForm(); // Clear form on successful login
       // The useEffect above will handle the navigation when user state updates
     } catch (error) {
       console.error('Login failed:', error);
@@ -108,9 +115,14 @@ const Login = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
+            <div className="flex space-x-2">
+              <Button type="submit" className="flex-1" disabled={isLoading || authLoading}>
+                {isLoading ? "Signing in..." : "Sign in"}
+              </Button>
+              <Button type="button" variant="outline" onClick={clearForm}>
+                Clear
+              </Button>
+            </div>
           </form>
           
           <div className="mt-6 text-center space-y-4">
