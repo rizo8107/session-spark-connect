@@ -105,6 +105,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setUser(null);
         }
+        
+        // Always set loading to false after processing auth state change
         setIsLoading(false);
       }
     );
@@ -115,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
+          setIsLoading(false);
         } else if (!session) {
           setIsLoading(false);
         }
@@ -135,7 +138,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     console.log('Login attempt for:', email);
-    setIsLoading(true);
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -149,9 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       console.log('Login successful:', data.user?.email);
-      // Don't set loading to false here, let the auth state change handle it
+      // Don't manually set loading state here - let the auth state change handle it
     } catch (error) {
-      setIsLoading(false);
       throw new Error(error instanceof Error ? error.message : 'Login failed');
     }
   };
